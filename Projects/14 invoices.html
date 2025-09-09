@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Case Study: Invoices & Organizations Analytics Pipeline</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; max-width: 900px; }
+    h1, h2, h3 { color: #2c3e50; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; overflow-x: auto; }
+    ul { margin-left: 20px; }
+    .highlight { background: #e8f6ff; padding: 8px; border-left: 4px solid #3498db; }
+  </style>
+</head>
+<body>
+  <h1>Case Study: Invoices & Organizations Analytics Pipeline</h1>
+
+  <h2>Overview</h2>
+  <p>
+    This project demonstrates the design of a <b>scalable analytics engineering pipeline</b> 
+    that ingests <code>invoices.csv</code> and <code>organizations.csv</code> data, 
+    models it into an analytics-ready structure, and builds orchestration + observability 
+    for reliability in production.
+  </p>
+
+  <h2>Objectives</h2>
+  <ul>
+    <li>Ingest raw data from CSVs into a cloud data warehouse.</li>
+    <li>Use an <b>S3 bucket</b> and <b>Snowflake external stage</b> for storage and ingestion.</li>
+    <li>Model data using <b>dbt</b> into staging and enterprise schemas.</li>
+    <li>Orchestrate workflows with <b>Airflow</b> and send alerts via <b>Slack</b>.</li>
+    <li>Enable both a production-grade setup and a lightweight prototype for quick validation.</li>
+  </ul>
+
+  <h2>Solution 1: Production-Grade Pipeline</h2>
+  <h3>Architecture</h3>
+  <ul>
+    <li><b>Storage:</b> Raw CSVs (<code>invoices.csv</code>, <code>organizations.csv</code>) uploaded to an <b>S3 bucket</b>.</li>
+    <li><b>Warehouse:</b> Snowflake external integration ingested these files into the <code>raw</code> schema.</li>
+    <li><b>Transformations:</b> dbt models built <code>staging</code> and <code>enterprise_warehouse</code> layers.</li>
+    <li><b>Orchestration:</b> Airflow DAG triggered dbt transformations and integrated with Slack via Webhook for observability.</li>
+    <li><b>Version Control & CI/CD:</b> GitHub ensured dbt testing, deployment, and versioning.</li>
+  </ul>
+
+  <h3>Pipeline Flow</h3>
+  <ol>
+    <li>CSV files (<code>invoices.csv</code>, <code>organizations.csv</code>) uploaded → S3 bucket.</li>
+    <li>Snowflake external stage loads data into <code>raw</code> schema.</li>
+    <li>dbt applies transformations → <code>staging</code> schema → <code>enterprise_warehouse</code> schema.</li>
+    <li>Airflow DAG orchestrates process, triggers Slack alerts on success/failure.</li>
+  </ol>
+
+  <h3>Example dbt Model</h3>
+  <pre>
+  -- models/enterprise/fact_invoices.sql
+  SELECT 
+    i.invoice_id,
+    i.invoice_date,
+    i.amount,
+    o.organization_id,
+    o.organization_name,
+    CASE 
+      WHEN i.amount > 1000 THEN 'High Value'
+      ELSE 'Standard'
+    END AS invoice_type
+  FROM {{ ref('stg_invoices') }} i
+  JOIN {{ ref('stg_organizations') }} o 
+    ON i.organization_id = o.organization_id;
+  </pre>
+
+  <h3>Airflow DAG with Slack Integration</h3>
+  <pre>
+  from airflow import DAG
+  from airflow.operators.bash import BashOperator
+  from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
+  from datetime import datetime
+
+  with DAG("invoices_orgs_dbt_pipeline",
+           start_date=datetime(2023,1,1),
+           schedule_interval="@daily",
+           catchup=False) as dag:
+
+      run_dbt = BashOperator(
+          task_id="run_dbt",
+          bash_command="cd /usr/local/airflow/dbt && dbt run"
+      )
+
+      notify_slack = SlackWebhookOperator(
+          task_id="notify_slack",
+          http_conn_id="slack_conn",
+          message="✅ dbt pipeline for invoices & orgs completed successfully!",
+          channel="#alerts"
+      )
+
+      run_dbt >> notify_slack
+  </pre>
+
+  <h2>Solution 2: Lightweight Local Pipeline</h2>
+  <p>
+    A simplified implementation was also developed in <b>Jupyter Notebook</b> 
+    to validate business logic and transformations quickly.
+  </p>
+  <ul>
+    <li>Used <b>Pandas</b> to ingest <code>invoices.csv</code> and <code>organizations.csv</code>.</li>
+    <li>Cleaned and joined datasets, applied transformations.</li>
+    <li>Generated KPIs such as revenue by organization, invoice category breakdown.</li>
+    <li>Exported clean data for further BI/visualization use.</li>
+  </ul>
+
+  <h2>Key Learnings</h2>
+  <ul>
+    <li>Built a <b>cloud-first data pipeline</b> using S3 + Snowflake external stage + dbt.</li>
+    <li>Implemented <b>Airflow DAGs</b> with Slack integration for observability.</li>
+    <li>Applied modular <b>dbt modeling</b> across raw, staging, and enterprise schemas.</li>
+    <li>Delivered a quick <b>Pandas prototype</b> for validation and insights.</li>
+  </ul>
+
+  <h2>Outcome</h2>
+  <p class="highlight">
+    This project showcases an <b>end-to-end analytics engineering workflow</b> 
+    from raw CSV ingestion to warehouse modeling, orchestration, and monitoring.  
+    It highlights the ability to deliver both <b>production-grade</b> pipelines 
+    and <b>lightweight prototypes</b> for rapid iteration.
+  </p>
+
+</body>
+</html>

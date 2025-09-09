@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Case Study: Financial Transactions Risk Monitoring</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; max-width: 900px; }
+    h1, h2, h3 { color: #2c3e50; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; overflow-x: auto; }
+    ul { margin-left: 20px; }
+    .highlight { background: #e8f6ff; padding: 8px; border-left: 4px solid #3498db; }
+    img { display: block; margin: 20px auto; max-width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>Case Study: Financial Transactions Risk Monitoring</h1>
+
+  <h2>Overview</h2>
+  <p>
+    This project focuses on building a <b>real-time risk monitoring pipeline</b> 
+    for financial transactions. The goal was to detect suspicious activities, 
+    reduce fraud exposure, and improve compliance monitoring.
+  </p>
+
+  <h2>Objectives</h2>
+  <ul>
+    <li>Ingest transaction logs in near real-time.</li>
+    <li>Build anomaly detection logic for suspicious transactions.</li>
+    <li>Model transactions and customer risk profiles.</li>
+    <li>Trigger alerts for compliance and risk teams via Slack.</li>
+  </ul>
+
+  <h2>Architecture</h2>
+  <p>The high-level pipeline architecture is shown below:</p>
+  <img src=".images/financial_pipeline.png" alt="Pipeline Architecture Diagram">
+
+  <ul>
+    <li><b>Source:</b> Transaction logs streamed via Kafka (or batch CSVs for demo).</li>
+    <li><b>Storage:</b> S3 bucket for raw logs.</li>
+    <li><b>Warehouse:</b> Snowflake external stage integration.</li>
+    <li><b>Transformations:</b> dbt models for staging, fact_transactions, and risk scores.</li>
+    <li><b>Orchestration:</b> Airflow DAG with Slack alerts.</li>
+    <li><b>Monitoring:</b> Anomaly detection queries flagged suspicious activities.</li>
+  </ul>
+
+  <h2>Example dbt Model</h2>
+  <pre>
+  -- models/marts/fct_transactions_risk.sql
+  SELECT
+    t.transaction_id,
+    t.customer_id,
+    t.amount,
+    t.transaction_date,
+    c.risk_category,
+    CASE
+      WHEN t.amount > 10000 THEN 'HIGH_RISK'
+      WHEN t.amount > 5000 AND c.risk_category = 'Medium' THEN 'MEDIUM_RISK'
+      ELSE 'LOW_RISK'
+    END AS risk_score
+  FROM {{ ref('stg_transactions') }} t
+  JOIN {{ ref('stg_customers') }} c 
+    ON t.customer_id = c.customer_id;
+  </pre>
+
+  <h2>Airflow DAG with Slack Integration</h2>
+  <pre>
+  from airflow import DAG
+  from airflow.operators.bash import BashOperator
+  from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
+  from datetime import datetime
+
+  with DAG("risk_monitoring_pipeline",
+           start_date=datetime(2023,1,1),
+           schedule_interval="@hourly",
+           catchup=False) as dag:
+
+      run_dbt = BashOperator(
+          task_id="run_dbt",
+          bash_command="cd /usr/local/airflow/dbt && dbt run"
+      )
+
+      notify_slack = SlackWebhookOperator(
+          task_id="notify_slack",
+          http_conn_id="slack_conn",
+          message="⚠️ Risk monitoring pipeline detected anomalies!",
+          channel="#risk-alerts"
+      )
+
+      run_dbt >> notify_slack
+  </pre>
+
+  <h2>Key Outcomes</h2>
+  <ul>
+    <li>Developed <b>risk-scoring models</b> for transactions.</li>
+    <li>Automated <b>fraud detection alerts</b> via Slack.</li>
+    <li>Improved compliance reporting with <b>near real-time monitoring</b>.</li>
+  </ul>
+
+  <p class="highlight">
+    This project highlights <b>risk analytics</b>, <b>real-time monitoring</b>, and 
+    <b>pipeline observability</b>, integrating cloud storage, Snowflake, dbt, and Airflow.
+  </p>
+
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 E-Commerce Sales Analytics Project</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; max-width: 900px; }
+    h1, h2, h3 { color: #2c3e50; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; overflow-x: auto; }
+    ul { margin-left: 20px; }
+    .highlight { background: #e8f6ff; padding: 8px; border-left: 4px solid #3498db; }
+  </style>
+</head>
+<body>
+  <h1>📊 E-Commerce Sales Analytics Project</h1>
+
+  <h2>Overview</h2>
+  <p>
+    This project demonstrates how to build a modern analytics engineering pipeline using 
+    <b>Fivetran, Snowflake, dbt, Airflow, and Tableau</b>. 
+    It ingests raw e-commerce data, transforms it into analytics-ready tables, 
+    and visualizes insights for business users.
+  </p>
+
+  <h2>Architecture</h2>
+  <ul>
+    <li><b>Ingestion:</b> Fivetran syncs Shopify data (orders, customers, products) into Snowflake.</li>
+    <li><b>Transformation:</b> dbt creates staging and marts (star schema with fact_sales, dim_customer, dim_product).</li>
+    <li><b>Orchestration:</b> Airflow DAG schedules dbt runs and ensures freshness.</li>
+    <li><b>Visualization:</b> Tableau dashboard with KPIs like Revenue, LTV, Churn Rate.</li>
+  </ul>
+
+  <h2>Pipeline Flow</h2>
+  <ol>
+    <li>Raw data → Snowflake via Fivetran.</li>
+    <li>dbt models transform raw data into clean tables.</li>
+    <li>Airflow triggers transformations daily.</li>
+    <li>Tableau dashboard consumes the analytics tables.</li>
+  </ol>
+
+  <h2>Example dbt Model</h2>
+  <pre>
+  -- models/marts/fact_sales.sql
+  SELECT 
+    o.order_id,
+    o.order_date,
+    c.customer_id,
+    p.product_id,
+    o.total_amount
+  FROM {{ ref('stg_orders') }} o
+  JOIN {{ ref('stg_customers') }} c ON o.customer_id = c.customer_id
+  JOIN {{ ref('stg_products') }} p ON o.product_id = p.product_id;
+  </pre>
+
+  <h2>Airflow DAG Example</h2>
+  <pre>
+  from airflow import DAG
+  from airflow.operators.bash import BashOperator
+  from datetime import datetime
+
+  with DAG("dbt_pipeline", start_date=datetime(2023,1,1), schedule_interval="@daily", catchup=False) as dag:
+      run_dbt = BashOperator(
+          task_id="run_dbt",
+          bash_command="cd /usr/local/airflow/dbt && dbt run"
+      )
+  </pre>
+
+  <h2>Dashboard Snapshot</h2>
+  <p class="highlight">
+    The Tableau dashboard includes:  
+    - Sales trends by month<br>
+    - Top 10 customers by revenue<br>
+    - Profit breakdown by region  
+  </p>
+
+  <h2>Key Learnings</h2>
+  <ul>
+    <li>How to implement ELT with Fivetran + dbt.</li>
+    <li>Designing scalable warehouse models (star schema).</li>
+    <li>Orchestrating pipelines with Airflow.</li>
+    <li>Delivering self-service analytics with Tableau.</li>
+  </ul>
+
+</body>
+</html>

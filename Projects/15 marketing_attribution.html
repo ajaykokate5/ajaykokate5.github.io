@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📈 Marketing Campaign Attribution Project</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; max-width: 900px; }
+    h1, h2, h3 { color: #2c3e50; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; overflow-x: auto; }
+    ul { margin-left: 20px; }
+    .highlight { background: #e8f6ff; padding: 8px; border-left: 4px solid #3498db; }
+  </style>
+</head>
+<body>
+  <h1>📈 Marketing Campaign Attribution Project</h1>
+
+  <h2>Overview</h2>
+  <p>
+    This project builds a marketing attribution system using 
+    <b>Fivetran, BigQuery, dbt, Airflow, and Tableau</b>. 
+    It integrates ad platform data, applies attribution models, 
+    and visualizes ROI across channels.
+  </p>
+
+  <h2>Architecture</h2>
+  <ul>
+    <li><b>Ingestion:</b> Fivetran pulls Google Ads, Facebook Ads, and CRM data into BigQuery.</li>
+    <li><b>Transformation:</b> dbt applies first-touch, last-touch, and linear attribution models.</li>
+    <li><b>Orchestration:</b> Airflow schedules dbt runs and keeps data fresh.</li>
+    <li><b>Visualization:</b> Tableau dashboard compares CAC, LTV, and ROI across channels.</li>
+  </ul>
+
+  <h2>Pipeline Flow</h2>
+  <ol>
+    <li>Ad platform + CRM data → BigQuery via Fivetran.</li>
+    <li>dbt models apply attribution transformations.</li>
+    <li>Airflow orchestrates the pipeline daily.</li>
+    <li>Tableau dashboard visualizes ROI, CAC, LTV.</li>
+  </ol>
+
+  <h2>Example dbt Model</h2>
+  <pre>
+  -- models/marts/fact_attribution.sql
+  SELECT
+    c.customer_id,
+    a.channel,
+    COUNT(*) AS touches,
+    SUM(a.spend) AS total_spend
+  FROM {{ ref('stg_ads') }} a
+  JOIN {{ ref('stg_customers') }} c ON a.customer_id = c.customer_id
+  GROUP BY c.customer_id, a.channel;
+  </pre>
+
+  <h2>Airflow DAG Example</h2>
+  <pre>
+  from airflow import DAG
+  from airflow.operators.bash import BashOperator
+  from datetime import datetime
+
+  with DAG("marketing_attribution", start_date=datetime(2023,1,1), schedule_interval="@daily", catchup=False) as dag:
+      run_dbt = BashOperator(
+          task_id="run_dbt",
+          bash_command="cd /usr/local/airflow/dbt && dbt run"
+      )
+  </pre>
+
+  <h2>Dashboard Snapshot</h2>
+  <p class="highlight">
+    The Tableau dashboard includes: <br>
+    - Channel performance comparison <br>
+    - Customer acquisition cost vs lifetime value <br>
+    - Attribution model results (first-touch, last-touch, linear)  
+  </p>
+
+  <h2>Key Learnings</h2>
+  <ul>
+    <li>Integrating ad + CRM data pipelines via Fivetran.</li>
+    <li>Modeling multi-touch attribution with dbt.</li>
+    <li>Automating transformations with Airflow.</li>
+    <li>Visualizing marketing ROI with Tableau.</li>
+  </ul>
+
+</body>
+</html>
